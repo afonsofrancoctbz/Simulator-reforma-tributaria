@@ -106,16 +106,16 @@ export const TaxDetailsSchema = z.object({
     domesticRevenue: z.number().optional(),
     exportRevenue: z.number().optional(),
     proLabore: z.number(),
-    fatorR: z.number().optional(),
-    effectiveRate: z.number().optional(),
-    effectiveDasRate: z.number().optional(),
+    fatorR: z.number().nullable().optional(),
+    effectiveRate: z.number().nullable().optional(),
+    effectiveDasRate: z.number().nullable().optional(),
     contabilizeiFee: z.number(),
     breakdown: z.array(TaxBreakdownItemSchema),
     notes: z.array(z.string()),
-    annex: z.string().optional(),
-    optimizationNote: z.string().optional(),
+    annex: z.string().nullable().optional(),
+    optimizationNote: z.string().nullable().optional(),
     partnerTaxes: z.array(PartnerTaxDetailsSchema),
-    order: z.number().optional(),
+    order: z.number().nullable().optional(),
 });
 export type TaxDetails = z.infer<typeof TaxDetailsSchema>;
 

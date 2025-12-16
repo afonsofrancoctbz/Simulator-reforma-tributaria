@@ -11,6 +11,8 @@ import {
     type Annex,
     type TaxDetails,
     type ProLaboreForm,
+    type CnaeItem,
+    type CnaeSelection,
 } from './types';
 import { formatPercent, findBracket, findFeeBracket, formatCurrencyBRL, resolvePlanFee } from './utils';
 import { getCnaeData } from './cnae-helpers';
@@ -44,10 +46,10 @@ function calculateLucroPresumido(values: TaxFormValues, isCurrentRules: boolean)
         creditGeneratingExpenses = 0
     } = values;
 
-    const totalProLaboreBruto = proLabores.reduce((a, p) => a + p.value, 0);
+    const totalProLaboreBruto = proLabores.reduce((a: number, p: ProLaboreForm) => a + p.value, 0);
 
-    const domesticRevenue = domesticActivities.reduce((sum, act) => sum + act.revenue, 0);
-    const exportRevenueBRL = exportActivities.reduce((sum, act) => sum + (act.revenue * exchangeRate), 0);
+    const domesticRevenue = domesticActivities.reduce((sum: number, act: CnaeItem) => sum + act.revenue, 0);
+    const exportRevenueBRL = exportActivities.reduce((sum: number, act: CnaeItem) => sum + (act.revenue * exchangeRate), 0);
     const totalRevenue = domesticRevenue + exportRevenueBRL;
     const monthlyPayroll = totalSalaryExpense + totalProLaboreBruto;
 
@@ -56,7 +58,7 @@ function calculateLucroPresumido(values: TaxFormValues, isCurrentRules: boolean)
     const inssPatronal = _calculateCpp(monthlyPayroll, fiscalConfig);
 
     // Cálculo da base presumida
-    let presumedProfitBase = [...domesticActivities, ...exportActivities.map(a => ({ ...a, revenue: a.revenue * exchangeRate }))].reduce((sum, activity) => {
+    let presumedProfitBase = [...domesticActivities, ...exportActivities.map((a: CnaeItem) => ({ ...a, revenue: a.revenue * exchangeRate }))].reduce((sum: number, activity: any) => {
         const cnaeInfo = getCnaeData(activity.code);
         return sum + (activity.revenue * (cnaeInfo?.presumedProfitRateIRPJ ?? 0.32));
     }, 0);
@@ -124,7 +126,7 @@ function calculateLucroPresumido(values: TaxFormValues, isCurrentRules: boolean)
         let totalIbsCredit = 0;
 
         // Calcular débito com redução específica por atividade
-        domesticActivities.forEach(activity => {
+        domesticActivities.forEach((activity: CnaeItem) => {
             const reduction = getIvaReduction(
                 activity.code,
                 activity.cClassTrib
@@ -228,13 +230,13 @@ function _calculateSimples2026(
     } = values;
 
     const proLaboresToUse = proLaboreOverride || proLabores;
-    const totalProLaboreBruto = proLaboresToUse.reduce((a, p) => a + p.value, 0);
+    const totalProLaboreBruto = proLaboresToUse.reduce((a: number, p: ProLaboreForm) => a + p.value, 0);
     const totalPayroll = totalSalaryExpense + totalProLaboreBruto;
 
     const { partnerTaxes, totalINSSRetido, totalIRRFRetido } = _calculatePartnerTaxes(proLaboresToUse, fiscalConfig);
 
-    const domesticRevenue = domesticActivities.reduce((sum, act) => sum + act.revenue, 0);
-    const exportRevenue = exportActivities.reduce((sum, act) => sum + (act.revenue * exchangeRate), 0);
+    const domesticRevenue = domesticActivities.reduce((sum: number, act: any) => sum + act.revenue, 0);
+    const exportRevenue = exportActivities.reduce((sum: number, act: any) => sum + (act.revenue * exchangeRate), 0);
     const totalRevenue = domesticRevenue + exportRevenue;
 
     const effectiveRbt12 = rbt12 > 0 ? rbt12 : totalRevenue * 12;
@@ -249,8 +251,8 @@ function _calculateSimples2026(
     const cppRate = fiscalConfig.aliquotas_cpp_patronal.base;
 
     const allActivities = [
-        ...domesticActivities.map(a => ({ ...a, isExport: false })),
-        ...exportActivities.map(a => ({ ...a, revenue: a.revenue * exchangeRate, isExport: true }))
+        ...domesticActivities.map((a: CnaeItem) => ({ ...a, isExport: false })),
+        ...exportActivities.map((a: CnaeItem) => ({ ...a, revenue: a.revenue * exchangeRate, isExport: true }))
     ];
 
     // Calcular DAS
@@ -291,11 +293,12 @@ function _calculateSimples2026(
 
     // Calcular IVA por fora (apenas no Simples Híbrido a partir de 2027)
     if (isHybrid && year >= 2027) {
-        const config2026 = getFiscalParametersPostReform(2026);
+        // CORREÇÃO: Usar o ano selecionado (year) em vez de hardcoded 2026
+        const configYear = getFiscalParametersPostReform(year);
 
         // CORREÇÃO: Usamos o operador de coalescência nula (??) para garantir um valor numérico
-        const baseCbsRate = config2026.reforma_tributaria?.cbs_aliquota_padrao ?? 0;
-        const baseIbsRate = config2026.reforma_tributaria?.ibs_aliquota_padrao ?? 0;
+        const baseCbsRate = configYear.reforma_tributaria?.cbs_aliquota_padrao ?? 0;
+        const baseIbsRate = configYear.reforma_tributaria?.ibs_aliquota_padrao ?? 0;
 
         let totalIbsDebit = 0;
         let totalCbsDebit = 0;
@@ -304,7 +307,7 @@ function _calculateSimples2026(
 
         const b2bRevenuePortion = (b2bRevenuePercentage ?? 100) / 100;
 
-        domesticActivities.forEach(activity => {
+        domesticActivities.forEach((activity: CnaeItem) => {
             if (activity.revenue > 0) {
                 const reduction = getIvaReduction(
                     activity.code,
@@ -316,6 +319,7 @@ function _calculateSimples2026(
 
                 const activityB2bRevenue = activity.revenue * b2bRevenuePortion;
 
+                // Aplica alíquotas do ano selecionado (Transição ou Pleno)
                 totalCbsDebit += activityB2bRevenue * (baseCbsRate * (1 - reducaoCBSDecimal));
                 totalIbsDebit += activityB2bRevenue * (baseIbsRate * (1 - reducaoIBSDecimal));
             }
@@ -423,9 +427,9 @@ export function calculateTaxes2026(values: TaxFormValues): CalculationResults202
 
     const fiscalConfig = getFiscalParametersPostReform(year);
 
-    const totalRevenue = domesticActivities.reduce((acc, act) => acc + act.revenue, 0)
-        + exportActivities.reduce((acc, act) => acc + (act.revenue * (exchangeRate || 1)), 0);
-    const totalProLaboreBruto = proLabores.reduce((acc, p) => acc + p.value, 0);
+    const totalRevenue = domesticActivities.reduce((acc: number, act: CnaeItem) => acc + act.revenue, 0)
+        + exportActivities.reduce((acc: number, act: CnaeItem) => acc + (act.revenue * (exchangeRate || 1)), 0);
+    const totalProLaboreBruto = proLabores.reduce((acc: number, p: ProLaboreForm) => acc + p.value, 0);
     const monthlyPayroll = totalSalaryExpense + totalProLaboreBruto;
 
     const effectiveRbt12 = rbt12 > 0 ? rbt12 : totalRevenue * 12;
@@ -438,7 +442,7 @@ export function calculateTaxes2026(values: TaxFormValues): CalculationResults202
     let simplesNacionalOtimizado: TaxDetails2026 | null = null;
     let simplesNacionalOtimizadoHibrido: TaxDetails2026 | null = null;
 
-    const hasAnnexVActivity = values.selectedCnaes.some(item => getCnaeData(item.code)?.requiresFatorR);
+    const hasAnnexVActivity = values.selectedCnaes.some((item: CnaeSelection) => getCnaeData(item.code)?.requiresFatorR);
 
     if (hasAnnexVActivity && totalRevenue > 0) {
         const limiteFatorR = fiscalConfig.simples_nacional.limite_fator_r;
@@ -453,7 +457,7 @@ export function calculateTaxes2026(values: TaxFormValues): CalculationResults202
             let minValue = Infinity;
             let minCount = 0;
 
-            proLaboresCopy.forEach(p => {
+            proLaboresCopy.forEach((p: ProLaboreForm) => {
                 if (p.value < minValue) {
                     minValue = p.value;
                     minCount = 1;
@@ -463,7 +467,7 @@ export function calculateTaxes2026(values: TaxFormValues): CalculationResults202
             });
 
             const addPerPartner = additionalMonthlyProLaboreNeeded / minCount;
-            proLaboresCopy.forEach(p => {
+            proLaboresCopy.forEach((p: ProLaboreForm) => {
                 if (p.value === minValue) p.value += addPerPartner;
             });
 
