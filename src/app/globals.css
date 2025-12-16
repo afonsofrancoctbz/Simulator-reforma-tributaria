@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%; /* cinza-bg: #f8fafc */
+    --foreground: 215 28% 17%; /* cinza-escuro: #1e293b */
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
+
+    --primary: 228 64% 33%; /* azul-contabilizei: #1e3a8a */
+    --primary-foreground: 0 0% 98%; /* branco */
+
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 220 14% 10%;
+
+    --muted: 220 13% 91%;
+    --muted-foreground: 217 19% 50%; /* cinza-texto: #64748b */
+
+    --accent: 228 64% 33%; /* azul-contabilizei: #1e3a8a */
+    --accent-foreground: 0 0% 98%; /* branco */
+    
+    --destructive: 3 84% 60%; /* #ef4444 */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 29% 94%; /* cinza-borda: #e2e8f0 */
+    --input: 220 29% 94%; /* #e2e8f0 */
+    --ring: 228 64% 45%; /* tom de azul um pouco mais claro para anel de foco */
+
+    --radius: 0.8rem;
+
+    --chart-1: 228 64% 33%; /* azul-contabilizei */
+    --chart-2: 120 60% 70%; /* verde um pouco mais escuro */
+    --chart-3: 228 50% 45%;
+    --chart-4: 120 80% 60%;
+    --chart-5: 228 30% 60%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+  
+  .print-hidden {
+    display: none !important;
+  }
+  
+  #results-section,
+  .printable-section {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .printable-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid !important;
+    margin-top: 2rem;
+  }
+
+  .results-grid {
+    display: block !important;
+  }
+  
+  .results-grid .printable-card {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  /* Garante que os cards de detalhamento e demonstrativo também não sejam divididos */
+  .details-card, .profit-card {
+    page-break-inside: avoid !important;
+    margin-top: 2rem;
+  }
+
+  .separator-print {
+    display: none;
+  }
+}
